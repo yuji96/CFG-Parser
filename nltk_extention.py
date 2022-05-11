@@ -9,19 +9,15 @@ class Node:
 
     def __init__(self, tree: Tree, parent=None):
         self.pos = tree.label()
-        self.word = None
         self.parent = parent
-        self.children: List[Node] = list(self.init_children(tree))
+        self.word = tree[0] if isinstance(tree[0], str) else None
         self.length = self.init_length()
+        self.children: List[Node] = list(self.__init_children(tree))
 
-    def init_children(self, tree):
+    def __init_children(self, tree):
         for child in tree:
             if isinstance(child, Tree):
                 yield Node(child, self)
-            elif isinstance(child, str):
-                self.word = child
-            else:
-                AssertionError
 
     def init_length(self):
         if self.is_terminal:
