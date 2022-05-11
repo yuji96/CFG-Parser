@@ -28,6 +28,10 @@ class Node:
             self.index = (start, start + 1)
             return self.index
 
+        if len(self.children) == 1:
+            self.index = self.children[0].__init_index(start)
+            return self.index
+
         indexes = []
         for child in self.children:
             start, end = child.__init_index(start)
