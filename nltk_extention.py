@@ -9,30 +9,33 @@ class Node:
 
     def __init__(self, tree: Tree, parent=None):
         self.pos = tree.label()
-        self.parent = parent
         self.word = tree[0] if isinstance(tree[0], str) else None
-        self.length = self.init_length()
+
+        self.parent = parent
         self.children: List[Node] = list(self.__init_children(tree))
+
+        self.index = None
+        if self.is_root:
+            self.index = self.__init_index()
 
     def __init_children(self, tree):
         for child in tree:
             if isinstance(child, Tree):
                 yield Node(child, self)
 
-    def init_length(self):
+    def __init_index(self, start=0):
         if self.is_terminal:
-            return 1
+            self.index = (start, start + 1)
+            return self.index
 
-        length = 0
+        indexes = []
         for child in self.children:
-            if isinstance(child, Node):
-                length += child.length
-            else:
-                raise AssertionError
-        return length
-
-    def init_index(self):
-        pass
+            start, end = child.__init_index(start)
+            indexes.append((start, end))
+            start = end
+        (left, _), *_, (_, right) = indexes
+        self.index = (left, right)
+        return self.index
 
     @property
     def is_root(self):
@@ -41,6 +44,11 @@ class Node:
     @property
     def is_terminal(self):
         return self.word is not None
+
+    @property
+    def length(self):
+        left, right = self.index
+        return right - left
 
     def get_leaves(self) -> List["Node"]:
         if self.is_terminal:
@@ -53,7 +61,7 @@ class Node:
 
     def __str__(self):
         if self.is_terminal:
-            return f"({self.word})"
+            return f"({self.pos} [{self.word}])"
         else:
             return f"({self.pos} {[child.pos for child in self.children]})"
 
@@ -72,8 +80,8 @@ def read_parsed_corpus(root,
 if __name__ == "__main__":
     _iter = read_parsed_corpus("treebank_3/parsed/mrg/wsj", "00/wsj_0001.mrg")
     _, tree = next(_iter)
-
     tree = Node(tree)
-    words = tree.get_leaves()
-    print(words)
-    print(tree.length)
+    leaves = tree.get_leaves()
+    print(leaves)
+    print([leaf.index for leaf in leaves])
+    print(tree.index)
