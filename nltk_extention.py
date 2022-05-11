@@ -59,6 +59,20 @@ class Node:
             leaves.extend(child.get_leaves())
         return leaves
 
+    def get_all_node(self):
+        nodes = [self]
+        for child in self.children:
+            nodes.extend(child.get_all_node())
+        return nodes
+
+    def to_2dlist(self):
+        result = [["" for _ in range(self.length + 1)]
+                  for _ in range(self.length + 1)]
+        for child in self.get_all_node():
+            i, j = child.index
+            result[i][j] = child
+        return result
+
     def __str__(self):
         if self.is_terminal:
             return f"({self.pos} [{self.word}])"
@@ -81,7 +95,4 @@ if __name__ == "__main__":
     _iter = read_parsed_corpus("treebank_3/parsed/mrg/wsj", "00/wsj_0001.mrg")
     _, tree = next(_iter)
     tree = Node(tree)
-    leaves = tree.get_leaves()
-    print(leaves)
-    print([leaf.index for leaf in leaves])
-    print(tree.index)
+    print(*tree.to_2dlist(), sep="\n")
