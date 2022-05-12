@@ -10,7 +10,7 @@ from tqdm import tqdm
 def progress(iter_, verbose, **kwargs):
     if not verbose:
         return iter_
-    return tqdm(list(iter_), **kwargs)
+    return tqdm(iter_, **kwargs)
 
 
 def read_chunked_corpus(root, dir_numbers,
@@ -23,11 +23,12 @@ def read_chunked_corpus(root, dir_numbers,
         para_block_reader=tagged_treebank_para_block_reader,
         tagset="wsj",
     )
-    for childdir in progress(p(root).iterdir(), verbose):
+    for childdir in progress(sorted(p(root).iterdir()), verbose):
         if childdir.name not in dir_numbers:
             continue
 
-        for path in progress(childdir.glob("wsj_*.pos"), verbose, leave=False):
+        for path in progress(sorted(childdir.glob("wsj_*.pos")), verbose,
+                             leave=False):
             words = reader.tagged_words(f"{childdir.name}/{path.name}")
             yield path, words
 
@@ -36,12 +37,13 @@ def read_parsed_corpus(root, dir_numbers,
                        verbose=False) -> Iterator[Tuple[str, Tree]]:
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = BracketParseCorpusReader(root, r"wsj_.*\.mrg", tagset="wsj")
-
-    for childdir in progress(p(root).iterdir(), verbose):
+    for childdir in progress(sorted(p(root).iterdir()), verbose):
         if childdir.name not in dir_numbers:
             continue
 
-        for path in progress(childdir.glob("wsj_*.mrg"), verbose, leave=False):
+        for path in progress(sorted(childdir.glob("wsj_*.mrg")), verbose,
+                             leave=False):
+            tqdm.write(str(path))
             for tree in reader.parsed_sents(f"{childdir.name}/{path.name}"):
                 yield path, tree
 
