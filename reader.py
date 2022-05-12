@@ -35,6 +35,27 @@ def read_chunked_corpus(root, dir_numbers,
 
 def read_parsed_corpus(root, dir_numbers,
                        verbose=False) -> Iterator[Tuple[str, Tree]]:
+    """構文解析済みのファイル（`*.mrg`）を `Tree` 型として返すイテレータ。
+
+    Parameters
+    ----------
+    root : str
+        ツリーバンクのパス。
+    dir_numbers : Sequence[int]
+        サブディレクトリ名の配列。ex) `range(0, 11)` とすると `root/00/wsj_*.mrg` から
+        `root/10/wsj_*.mrg` が読み込まれる。
+    verbose : bool, default=False
+        `True` にした場合は、プログレスバーが表示される。このとき、`print` を使うと
+        表示がバグるので `tqdm.write` を使う。
+
+    Yields
+    ------
+    path : Path
+        読み込んだパス。
+    tree : Tree
+        解析済みの木構造。
+
+    """
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = BracketParseCorpusReader(root, r"wsj_.*\.mrg", tagset="wsj")
     for childdir in progress(sorted(p(root).iterdir()), verbose):
@@ -43,7 +64,6 @@ def read_parsed_corpus(root, dir_numbers,
 
         for path in progress(sorted(childdir.glob("wsj_*.mrg")), verbose,
                              leave=False):
-            tqdm.write(str(path))
             for tree in reader.parsed_sents(f"{childdir.name}/{path.name}"):
                 yield path, tree
 
