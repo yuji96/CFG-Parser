@@ -1,7 +1,9 @@
 from pathlib import Path as p
+from typing import Iterator, Tuple
 
 from nltk.corpus import (BracketParseCorpusReader, ChunkedCorpusReader,
                          RegexpTokenizer, tagged_treebank_para_block_reader)
+from nltk.tree import Tree
 from tqdm import tqdm
 
 
@@ -11,7 +13,8 @@ def progress(iter_, verbose, **kwargs):
     return tqdm(list(iter_), **kwargs)
 
 
-def read_chunked_corpus(root, dir_numbers, verbose=False):
+def read_chunked_corpus(root, dir_numbers,
+                        verbose=False) -> Iterator[Tuple[str, Tree]]:
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = ChunkedCorpusReader(
         root,
@@ -29,7 +32,8 @@ def read_chunked_corpus(root, dir_numbers, verbose=False):
             yield path, words
 
 
-def read_parsed_corpus(root, dir_numbers, verbose=False):
+def read_parsed_corpus(root, dir_numbers,
+                       verbose=False) -> Iterator[Tuple[str, Tree]]:
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = BracketParseCorpusReader(root, r"wsj_.*\.mrg", tagset="wsj")
 
