@@ -1,6 +1,9 @@
 # my settings
-**/treebank_3
+treebank_3
+**/*.mrg
 tmp
+.vscode
+EVALB
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
