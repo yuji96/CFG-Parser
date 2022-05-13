@@ -1,4 +1,4 @@
-from pathlib import Path as p
+from pathlib import Path
 from typing import Iterator, Tuple
 
 from nltk.corpus import (BracketParseCorpusReader, ChunkedCorpusReader,
@@ -14,7 +14,7 @@ def progress(iter_, verbose, **kwargs):
 
 
 def read_chunked_corpus(root, dir_numbers,
-                        verbose=False) -> Iterator[Tuple[str, Tree]]:
+                        verbose=False) -> Iterator[Tuple[Path, Tree]]:
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = ChunkedCorpusReader(
         root,
@@ -23,7 +23,7 @@ def read_chunked_corpus(root, dir_numbers,
         para_block_reader=tagged_treebank_para_block_reader,
         tagset="wsj",
     )
-    for childdir in progress(sorted(p(root).iterdir()), verbose):
+    for childdir in progress(sorted(Path(root).iterdir()), verbose):
         if childdir.name not in dir_numbers:
             continue
 
@@ -34,7 +34,7 @@ def read_chunked_corpus(root, dir_numbers,
 
 
 def read_parsed_corpus(root, dir_numbers,
-                       verbose=False) -> Iterator[Tuple[str, Tree]]:
+                       verbose=False) -> Iterator[Tuple[Path, Tree]]:
     """構文解析済みのファイル（`*.mrg`）を `Tree` 型として返すイテレータ。
 
     Parameters
@@ -58,7 +58,7 @@ def read_parsed_corpus(root, dir_numbers,
     """
     dir_numbers = [str(num).zfill(2) for num in dir_numbers]
     reader = BracketParseCorpusReader(root, r"wsj_.*\.mrg", tagset="wsj")
-    for childdir in progress(sorted(p(root).iterdir()), verbose):
+    for childdir in progress(sorted(Path(root).iterdir()), verbose):
         if childdir.name not in dir_numbers:
             continue
 
