@@ -21,6 +21,11 @@ def rule_as_dict(rules: list[Production]):
     syntax_dict : dict[str, list]
         2 つの子ノードを、それらを生成できる親ノードの選択肢にマッピングする辞書。
         i.e. {('NP', 'VP'): [(1.0, 'S'), ...], ...}
+    unary_dict : dict[str, list]
+        再帰的に unary ルールを適用したときに到達可能な選択肢を返す辞書。
+        バックポインタも返す。
+        i.e. {('B',): [(1.0, 'A', ('B',))],
+              ('C',): [(1.0, 'B', ('C',)), (1.0, 'A', ('B',))]}
 
     """
 
