@@ -1,4 +1,4 @@
-def CKY(leaves, lexical_rule, syntax_rule):
+def CKY(leaves, lexical_rule, syntax_rule, unary_rule):
     n = len(leaves)
     cell = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
     for i, leaf in enumerate(leaves):
@@ -11,6 +11,14 @@ def CKY(leaves, lexical_rule, syntax_rule):
                 for prob_l, x_l in cell[i][k]:
                     for prob_r, x_r in cell[k][j]:
                         cell[i][j] += syntax_rule.get((x_l, x_r), [])
+
+                # [(0.7, 'N'), (0.7, 'N')]   [0.1, NNP]
+                for _, child in cell[i][k]:
+                    for prob, accessible, back \
+                            in unary_rule.get((child, ), []):
+                        cell[i][k + 1] += [(prob, accessible)]
+                    # [(0.3, 'NP', ('N', )), (1.0, 'NNP', ('NP', ))],
+
     return cell
 
 
@@ -36,9 +44,26 @@ if __name__ == "__main__":
         ('V', 'PP'): [(0.5, 'VP')],
         ('D', 'N'): [(0.4, 'NP')],
         ('N', 'N'): [(0.3, 'NP')],
-        ('N', ): [(0.3, 'NP')],
         ('P', 'NP'): [(1.0, 'PP')],
     }
 
-    print(*CKY(tree.leaves(), lexical_dict, syntax_dict), sep="\n")
+    unary_dict = {
+        ('N', ): [(0.3, 'NP', ('N', )), (1.0, 'NNP', ('NP', ))],
+        ('NP', ): [(1.0, 'NNP', ('NP', ))]
+    }
+    # N ->NP -> NNP
+    # N -> NNP
 
+    print(*CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict), sep="\n")
+
+
+def visible_print(cell):
+    for row in cell:
+        for patterns in row:
+            try:
+                _, tags = zip(*patterns)
+                tags = ",".join(set(tags))
+                print(f"{tags: ^10}", end="|")
+            except ValueError:
+                print(" " * 10, end="|")
+        print()
