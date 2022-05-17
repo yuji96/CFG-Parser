@@ -6,27 +6,31 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                           for prob, parent in lexical_rule[leaf]]
 
         for prob_chain, tree in cell[i][i + 1].copy():
-            tree, _ = tree
-            for prob_next, parent in unary_rule.get(tree, []):
-                prob_chain *= prob_next
+            tag, *_ = tree
+            for prob_gen, parent in unary_rule.get(tag, []):
+                prob_chain *= prob_gen
                 cell[i][i + 1] += [(prob_chain, [parent, tree])]
 
     for l in range(2, n + 1):  # noqa
         for i in range(n - l + 1):
             j = i + l
+            cand = []
             for k in range(i + 1, j):
-                for prob_l, x_l in cell[i][k]:
-                    tag_l, *_ = x_l
-                    for prob_r, x_r in cell[k][j]:
-                        tag_r, *_ = x_r
-                        for prod_gen, parent in syntax_rule.get((tag_l, tag_r), []):
-                            cell[i][j] += [(prod_gen * prob_l * prob_r,
-                                            [parent, x_l, x_r])]
+                for prob_l, s_l in cell[i][k]:
+                    tag_l, *_ = s_l
+                    for prob_r, s_r in cell[k][j]:
+                        tag_r, *_ = s_r
+                        for prob_gen, parent in syntax_rule.get((tag_l, tag_r), []):
+                            cand += [(prob_gen * prob_l * prob_r,
+                                      [parent, s_l, s_r])]
 
             for prob_chain, tree in cell[i][j].copy():
                 tag, *_ = tree
-                for prob, accessibles in unary_rule.get(tag, []):
-                    cell[i][j] += [(prob_chain * prob, accessibles)]
+                for prob_gen, accessible in unary_rule.get(tag, []):
+                    prob_chain *= prob_gen
+                    cand += [(prob_chain, [accessible, tree])]
+
+            cell[i][j] = [max(cand)] if cand else []
 
     return cell
 
