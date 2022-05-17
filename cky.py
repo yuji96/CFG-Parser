@@ -53,6 +53,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 def build_tree(chart, n=1):
     trees = []
     for prob, tree in chart[0][-1][:n]:
+        print(prob)
         trees.append(Tree.fromlist(tree))
     return trees
 
