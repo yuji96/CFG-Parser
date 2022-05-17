@@ -1,40 +1,73 @@
-def CKY(leaves, lexical_rule, syntax_rule, unary_rule):
+from nltk.tree import Tree
+
+
+def fromlist(l):  # noqa
+    if type(l) == list and len(l) > 0:
+        label = str(l[0])
+        if len(l) > 1:
+            return Tree(label, [fromlist(child) for child in l[1:]])
+        else:
+            return label
+
+
+Tree.fromlist = fromlist
+
+
+def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict):
     n = len(leaves)
-    cell = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
+    cell: list = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
     for i, leaf in enumerate(leaves):
-        cell[i][i + 1] = lexical_rule[leaf]
+        cell[i][i + 1] = [(prob, [parent, [leaf]])
+                          for prob, parent in lexical_rule[leaf]]
 
-        for _, child in cell[i][i + 1].copy():
-            for prob, accessible, back \
-                    in unary_rule.get((child, ), []):
-                cell[i][i + 1] += [(prob, accessible)]
+        for prob_chain, tree in cell[i][i + 1].copy():
+            tag, *_ = tree
+            for prob_gen, parent in unary_rule.get(tag, []):
+                prob_chain *= prob_gen
+                cell[i][i + 1] += [(prob_chain, [parent, tree])]
 
-    for l in range(2, n + 1):
+    for l in range(2, n + 1):  # noqa
         for i in range(n - l + 1):
             j = i + l
+            cand = []
             for k in range(i + 1, j):
-                for prob_l, x_l in cell[i][k]:
-                    for prob_r, x_r in cell[k][j]:
-                        cell[i][j] += syntax_rule.get((x_l, x_r), [])
+                for prob_l, s_l in cell[i][k]:
+                    tag_l, *_ = s_l
+                    for prob_r, s_r in cell[k][j]:
+                        tag_r, *_ = s_r
+                        for prob_gen, parent in syntax_rule.get((tag_l, tag_r), []):
+                            cand += [(prob_gen * prob_l * prob_r,
+                                      [parent, s_l, s_r])]
 
-            for _, child in cell[i][j].copy():
-                for prob, accessible, back \
-                        in unary_rule.get((child, ), []):
-                    cell[i][j] += [(prob, accessible)]
+            for prob_chain, tree in cell[i][j].copy():
+                tag, *_ = tree
+                for prob_gen, accessible in unary_rule.get(tag, []):
+                    prob_chain *= prob_gen
+                    cand += [(prob_chain, [accessible, tree])]
+
+            cell[i][j] = [max(cand)] if cand else []
 
     return cell
 
 
+def build_tree(chart, n=1):
+    trees = []
+    for prob, tree in chart[0][-1][:n]:
+        trees.append(Tree.fromlist(tree))
+    return trees
+
+
 def visible_print(cell):
-    for row in cell:
-        for patterns in row:
+    for row in cell[:-1]:
+        print(end="|")
+        for patterns in row[1:]:
             try:
-                _, tags = zip(*patterns)
-                tags = ",".join(tags)
+                tags = ",".join([tree[0] for _, tree in patterns])
                 print(f"{tags: ^10}", end="|")
             except ValueError:
                 print(" " * 10, end="|")
         print()
+    print()
 
 
 if __name__ == "__main__":
@@ -61,9 +94,11 @@ if __name__ == "__main__":
     }
 
     unary_dict = {
-        ('N', ): [(0.3, 'NP', ('N', )), (1.0, 'NNP', ('NP', ))],
-        ('NP', ): [(1.0, 'NNP', ('NP', ))]
+        'N': [(0.3, 'NP'), (0.8, 'NNP')],
+        'NP': [(0.8, 'NNP')],
     }
 
     chart = CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict)
-    visible_print(chart)
+    pred_tree = build_tree(chart)
+    print(tree)
+    print(pred_tree[0])
