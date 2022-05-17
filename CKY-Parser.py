@@ -12,15 +12,19 @@ def CKY(leaves, lexical_rule, syntax_rule, unary_rule):
     for l in range(2, n + 1):
         for i in range(n - l + 1):
             j = i + l
+            cand = []
             for k in range(i + 1, j):
-                for prob_l, x_l in cell[i][k]:
-                    for prob_r, x_r in cell[k][j]:
-                        cell[i][j] += syntax_rule.get((x_l, x_r), [])
+                for prob_l, s_l in cell[i][k]:
+                    for prob_r, s_r in cell[k][j]:
+                        for prob_gen, a in syntax_rule.get((s_l, s_r), []):
+                            cand += [(prob_gen * prob_l * prob_r, a)]
 
-            for _, child in cell[i][j].copy():
-                for prob, accessible, back \
+            for prob_child, child in cell[i][j].copy():
+                for prob_gen, accessible, back \
                         in unary_rule.get((child, ), []):
-                    cell[i][j] += [(prob, accessible)]
+                    cand += [(prob_child * prob_gen, accessible)]
+
+            cell[i][j] = [max(cand)] if cand else []
 
     return cell
 
@@ -66,4 +70,6 @@ if __name__ == "__main__":
     }
 
     chart = CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict)
+
+    print(chart)
     visible_print(chart)
