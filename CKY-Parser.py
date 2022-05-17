@@ -1,3 +1,18 @@
+from nltk.tree import Tree
+
+
+def fromlist(l):  # noqa
+    if type(l) == list and len(l) > 0:
+        label = str(l[0])
+        if len(l) > 1:
+            return Tree(label, [fromlist(child) for child in l[1:]])
+        else:
+            return label
+
+
+Tree.fromlist = fromlist
+
+
 def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict):
     n = len(leaves)
     cell: list = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
@@ -35,6 +50,13 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
     return cell
 
 
+def build_tree(chart, n=1):
+    trees = []
+    for prob, tree in chart[0][-1][:n]:
+        trees.append(Tree.fromlist(tree))
+    return trees
+
+
 def visible_print(cell):
     for row in cell[:-1]:
         print(end="|")
@@ -50,7 +72,6 @@ def visible_print(cell):
 
 if __name__ == "__main__":
     from pathlib import Path
-    from pprint import pprint
 
     from nltk.tree import Tree
     tree: Tree = Tree.fromstring(Path("example/tree.mrg").read_text())
@@ -77,6 +98,7 @@ if __name__ == "__main__":
         'NP': [(0.8, 'NNP')],
     }
 
-    leaves = tree.leaves()
-    chart = CKY(leaves, lexical_dict, syntax_dict, unary_dict)
-    pprint(chart[0][-1])
+    chart = CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict)
+    pred_tree = build_tree(chart)
+    print(tree)
+    print(pred_tree[0])
