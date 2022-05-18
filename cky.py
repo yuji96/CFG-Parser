@@ -54,10 +54,10 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
     return cell, backpointer
 
 
-def build_tree(backpointer):
+def build_tree(backpointer) -> Tree:
     n = len(backpointer) - 1
 
-    k, s_l, s_r = backpointer[0][n]["S"]
+    back_of_S = backpointer[0][n]["S"]
 
     def backward(i, j, tag) -> Tree:
         unary_or_binary = backpointer[i][j][tag]
@@ -71,7 +71,12 @@ def build_tree(backpointer):
             else:
                 return Tree(tag, [backward(i, j, child)])
 
-    return Tree("S", [backward(0, k, s_l), backward(k, n, s_r)])
+    if len(back_of_S) == 3:
+        k, s_l, s_r = back_of_S
+        return Tree("S", [backward(0, k, s_l), backward(k, n, s_r)])
+    else:
+        child, _ = back_of_S
+        return Tree("S", [backward(0, n, child)])
 
 
 def visible_print(cell):
@@ -79,8 +84,7 @@ def visible_print(cell):
         print(end="|")
         for patterns in row[1:]:
             try:
-                tags = ",".join([tree for _, tree in patterns])
-                print(f"{tags: ^10}", end="|")
+                print(f"{len(patterns): ^5}", end="|")
             except ValueError:
                 print(" " * 10, end="|")
         print()
