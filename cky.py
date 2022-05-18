@@ -20,18 +20,17 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
     for i, leaf in enumerate(leaves):
         # 単語 -> 品詞
-        for prod, parent in lexical_rule[leaf]:
-            cell[i][i + 1] += [(prod, parent)]
+        for prob, parent in lexical_rule[leaf]:
+            cell[i][i + 1] += [(prob, parent)]
             backpointer[i][i + 1][parent] = (leaf, True)
 
         for prob_chain, child in cell[i][i + 1].copy():
             # unary rule（妥協）
-            for _ in range(2):
-                for prob_next, parent in unary_rule.get(child, []):
-                    cell[i][i + 1] += [(prob_chain * prob_next, parent)]
-                    backpointer[i][i + 1][parent] = (child, False)
-                child = parent
-                prob_chain *= prob_next
+            for prob_next, parent in unary_rule.get(child, []):
+                cell[i][i + 1] += [(prob_chain * prob_next, parent)]
+                backpointer[i][i + 1][parent] = (child, False)
+
+        cell[i][i + 1] = nlargest(10, cell[i][i + 1])
 
     for l in range(2, n + 1):  # noqa
         for i in range(n - l + 1):
@@ -46,12 +45,9 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
             for prob_chain, child in cand.copy():
                 # unary rule（妥協）
-                for _ in range(2):
-                    for prob_next, parent in unary_rule.get(child, []):
-                        cand += [(prob_chain * prob_next, parent)]
-                        backpointer[i][j][parent] = (child, False)
-                    child = parent
-                    prob_chain *= prob_next
+                for prob_next, parent in unary_rule.get(child, []):
+                    cand += [(prob_chain * prob_next, parent)]
+                    backpointer[i][j][parent] = (child, False)
 
             cell[i][j] = [max(cand)] if cand else []
 
