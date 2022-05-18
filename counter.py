@@ -35,6 +35,7 @@ def rule_as_dict(rules: list[Production]):
     unary_all_case = defaultdict(list)
 
     for rule in rules:
+        # なぜか "A" ではなく "'A'" が返る
         if rule.is_lexical():
             tag = str(rule.lhs())
             word, *_ = rule.rhs()
