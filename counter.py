@@ -28,6 +28,7 @@ def rule_as_dict(rules: list[Production]):
               ('C',): [(1.0, 'B', ('C',)), (1.0, 'A', ('B',))]}
 
     """
+    # TODO: update docstrings
 
     lexical_all_cases = defaultdict(list)
     syntax_all_case = defaultdict(list)
@@ -61,43 +62,24 @@ def rule_as_dict(rules: list[Production]):
             for children, count in Counter(cases).items():
                 out_dict.setdefault(children, [])
                 out_dict[children].append((count / n, tag))
-    unary_dict = make_unary_dict(unary_dict)
 
     return lexical_dict, syntax_dict, unary_dict
 
 
-def make_unary_dict(unary_dict: dict):
-
-    new_unary_dict = deepcopy(unary_dict)
-    arriveable: set[str] = set()
-
-    def closure(child: str) -> list:
-        if child in arriveable:
-            return []
-
-        arriveable.add(child)
-        parent_info = unary_dict.get(child, [])
-
-        return parent_info + list(
-            chain.from_iterable([closure(parent) for _, parent in parent_info]))
-
-    for child in unary_dict:
-        arriveable.clear()
-        new_unary_dict[child] = closure(child)
-
-    return new_unary_dict
-
-
 if __name__ == "__main__":
+    import pickle
     from pathlib import Path
+    from pprint import pprint
+    from random import sample
 
     from reader import read_parsed_corpus
+
+    TRAIN = True
 
     Path("stats").mkdir(exist_ok=True)
 
     rules = []
-    dir_numbers = range(2, 21 + 1)
-    # dir_numbers = [0]
+    dir_numbers = range(2, 21 + 1) if TRAIN else [0]
     for path, tree in read_parsed_corpus("treebank_3/parsed/mrg/wsj", dir_numbers,
                                          verbose=True):
         tree.chomsky_normal_form()
@@ -105,10 +87,9 @@ if __name__ == "__main__":
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
 
-    # from random import sample
-    # pprint(dict((sample(sorted(unary_dict.items()), 5))))
-
-    # import pickle
-    # Path("stats/lexical_dict.pkl").write_bytes(pickle.dumps(lexical_dict))
-    # Path("stats/syntax_dict.pkl").write_bytes(pickle.dumps(syntax_dict))
-    # Path("stats/unary_dict.pkl").write_bytes(pickle.dumps(unary_dict))
+    if TRAIN:
+        Path("stats/lexical_dict.pkl").write_bytes(pickle.dumps(lexical_dict))
+        Path("stats/syntax_dict.pkl").write_bytes(pickle.dumps(syntax_dict))
+        Path("stats/unary_dict.pkl").write_bytes(pickle.dumps(unary_dict))
+    else:
+        pprint(dict((sample(sorted(unary_dict.items()), 5))))
