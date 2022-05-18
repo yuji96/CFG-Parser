@@ -1,3 +1,5 @@
+from heapq import nlargest
+
 from nltk.tree import Tree
 
 
@@ -13,7 +15,8 @@ def fromlist(l):  # noqa
 Tree.fromlist = fromlist
 
 
-def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict):
+def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict,
+        beam=30):
     n = len(leaves)
     cell = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
     backpointer = [[{} for _ in range(n + 1)] for _ in range(n + 1)]
@@ -49,7 +52,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                     cand += [(prob_chain * prob_next, parent)]
                     backpointer[i][j][parent] = (child, False)
 
-            cell[i][j] = [max(cand)] if cand else []
+            cell[i][j] = nlargest(beam, cand)
 
     return cell, backpointer
 
