@@ -28,6 +28,7 @@ def rule_as_dict(rules: list[Production]):
               ('C',): [(1.0, 'B', ('C',)), (1.0, 'A', ('B',))]}
 
     """
+    # TODO: update docstrings
 
     lexical_all_cases = defaultdict(list)
     syntax_all_case = defaultdict(list)
@@ -43,58 +44,41 @@ def rule_as_dict(rules: list[Production]):
             tag = str(rule.lhs())
             children = tuple(map(str, rule.rhs()))
             if len(children) == 1:
-                unary_all_case[tag].append(children)
+                unary_all_case[tag].append(children[0])
             else:
                 syntax_all_case[tag].append(children)
 
     lexical_dict: dict[str, list] = {}
-    syntax_dict: dict[str, list] = {}
+    syntax_dict: dict[tuple[str], list] = {}
     unary_dict: dict[str, list] = {}
+    # yapf: disable
     for case_dict, out_dict in zip(
-        [lexical_all_cases, syntax_all_case, unary_all_case],
-        [lexical_dict, syntax_dict, unary_dict]):
+            [lexical_all_cases, syntax_all_case, unary_all_case],
+            [lexical_dict, syntax_dict, unary_dict]):
+        # yapf: enable
         for tag, cases in case_dict.items():
             n = len(cases)
-            for word, count in Counter(cases).items():
-                out_dict.setdefault(word, [])
-                # TODO: heap push ?
-                out_dict[word].append((count / n, tag))
-    unary_dict = make_unary_dict(unary_dict)
+            for children, count in Counter(cases).items():
+                out_dict.setdefault(children, [])
+                out_dict[children].append((count / n, tag))
 
     return lexical_dict, syntax_dict, unary_dict
 
 
-def make_unary_dict(unary_dict: dict):
-
-    new_unary_dict = deepcopy(unary_dict)
-    arriveable: set[str] = set()
-
-    def closure(child) -> list:
-        if child in arriveable:
-            return []
-
-        arriveable.add(child)
-        parents = [(prob, tag, child) for prob, tag in unary_dict.get(child, [])]
-        return parents + list(
-            chain.from_iterable(closure((tag, )) for _, tag, _ in parents))
-
-    for child in unary_dict:
-        arriveable.clear()
-        new_unary_dict[child] = closure(child)
-
-    return new_unary_dict
-
-
 if __name__ == "__main__":
+    import pickle
     from pathlib import Path
+    from pprint import pprint
+    from random import sample
 
     from reader import read_parsed_corpus
+
+    TRAIN = True
 
     Path("stats").mkdir(exist_ok=True)
 
     rules = []
-    dir_numbers = range(2, 21 + 1)
-    # dir_numbers = [0]
+    dir_numbers = range(2, 21 + 1) if TRAIN else [0]
     for path, tree in read_parsed_corpus("treebank_3/parsed/mrg/wsj", dir_numbers,
                                          verbose=True):
         tree.chomsky_normal_form()
@@ -102,10 +86,9 @@ if __name__ == "__main__":
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
 
-    # from random import sample
-    # pprint(dict((sample(sorted(unary_dict.items()), 5))))
-
-    # import pickle
-    # Path("stats/lexical_dict.pkl").write_bytes(pickle.dumps(lexical_dict))
-    # Path("stats/syntax_dict.pkl").write_bytes(pickle.dumps(syntax_dict))
-    # Path("stats/unary_dict.pkl").write_bytes(pickle.dumps(unary_dict))
+    if TRAIN:
+        Path("stats/lexical_dict.pkl").write_bytes(pickle.dumps(lexical_dict))
+        Path("stats/syntax_dict.pkl").write_bytes(pickle.dumps(syntax_dict))
+        Path("stats/unary_dict.pkl").write_bytes(pickle.dumps(unary_dict))
+    else:
+        pprint(dict((sample(sorted(unary_dict.items()), 5))))
