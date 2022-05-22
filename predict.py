@@ -1,28 +1,39 @@
+import pickle
 from pathlib import Path
-from pprint import pprint
 
-import matplotlib.pyplot as plt
 from nltk.tree import Tree
+from tqdm import tqdm
 
-from cky import CKY
-from counter import rule_as_dict
+from cky import CKY, build_tree
+from reader import read_cleaned_corpus
 
-tree: Tree = Tree.fromstring(Path("example/0200-1.txt").read_text())
-margin = float("inf")
-# Path("tmp/gold.txt").write_text(tree.pformat(margin))
+lexical_dict = pickle.loads(Path("stats/lexical_dict.pkl").read_bytes())
+syntax_dict = pickle.loads(Path("stats/syntax_dict.pkl").read_bytes())
+unary_dict = pickle.loads(Path("stats/unary_dict.pkl").read_bytes())
 
-tree.chomsky_normal_form()
-lexical_dict, syntax_dict, unary_dict = rule_as_dict(tree.productions())
+golds = read_cleaned_corpus("debug")
+preds = []
+for gold in tqdm(golds.copy()):
+    gold: Tree
 
-chart, backpointer = CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict)
+    gold.chomsky_normal_form()
+    chart, backpointer = CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict,
+                             beam=30)
+    pred = build_tree(backpointer)
 
+    gold.un_chomsky_normal_form()
+    pred.un_chomsky_normal_form()
+    preds.append(pred)
+
+Path("tmp/gold.txt").write_text("\n".join(
+    [tree.pformat(margin=float("inf")) for tree in golds]))
+Path("tmp/pred.txt").write_text("\n".join(
+    [tree.pformat(margin=float("inf")) for tree in preds]))
+
+# 可視化用
 # chart_count = [[len(tags) for tags in row] for row in chart]
 # plt.imshow(chart_count)
 # plt.show()
-
 # pprint(chart[0][-1])
 # visible_print(chart)
-# pred_tree = build_tree(backpointer)
-# pred_tree.un_chomsky_normal_form()
 # pred_tree.pretty_print()
-# Path("tmp/pred.txt").write_text(pred_tree.pformat(margin))
