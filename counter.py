@@ -1,6 +1,4 @@
 from collections import Counter, defaultdict
-from copy import deepcopy
-from itertools import chain
 
 from nltk.grammar import Production
 
@@ -44,8 +42,9 @@ def rule_as_dict(rules: list[Production]):
         else:
             tag = str(rule.lhs())
             children = tuple(map(str, rule.rhs()))
-            if len(children) == 1:
-                unary_all_case[tag].append(children[0])
+            child, *_ = children
+            if len(children) == 1 and child != tag:
+                unary_all_case[tag].append(child)
             else:
                 syntax_all_case[tag].append(children)
 
