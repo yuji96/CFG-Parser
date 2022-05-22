@@ -68,13 +68,17 @@ def read_parsed_corpus(root, dir_numbers,
                 yield path, tree
 
 
-if __name__ == "__main__":
-    for path, words in read_chunked_corpus("treebank_3/tagged/pos/wsj",
-                                           range(0, 5 + 1), verbose=True):
-        print(path, words, sep="\n")
-        break
+def read_cleaned_corpus(mode) -> list[Tree]:
+    reader = BracketParseCorpusReader("data/", r".*\.clean", tagset="wsj")
+    if mode == "train":
+        return reader.parsed_sents("02-21.10way.clean")
+    if mode == "valid":
+        return reader.parsed_sents("22.auto.clean")
+    if mode == "test":
+        return reader.parsed_sents("23.auto.clean")
 
-    for path, tree in read_parsed_corpus("treebank_3/parsed/mrg/wsj",
-                                         range(0, 5 + 1), verbose=True):
-        print(path, tree, sep="\n")
+
+if __name__ == "__main__":
+    for tree in read_cleaned_corpus("test"):
+        print(tree)
         break

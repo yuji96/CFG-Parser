@@ -71,17 +71,16 @@ if __name__ == "__main__":
     from pathlib import Path
     from pprint import pprint
     from random import sample
+    from tqdm import tqdm
 
-    from reader import read_parsed_corpus
+    from reader import read_cleaned_corpus
 
     TRAIN = True
 
     Path("stats").mkdir(exist_ok=True)
 
     rules = []
-    dir_numbers = range(2, 21 + 1) if TRAIN else [0]
-    for path, tree in read_parsed_corpus("treebank_3/parsed/mrg/wsj", dir_numbers,
-                                         verbose=True):
+    for tree in tqdm(read_cleaned_corpus("train")):
         tree.chomsky_normal_form()
         rules += tree.productions()
 
