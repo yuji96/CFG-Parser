@@ -41,19 +41,13 @@ def evaluate(gold_trees: list[Tree], pred_trees: list[Tree]):
         d.joinpath("pred.txt").write_text(preds)
         pipe = subprocess.run([str(evalb), d / "gold.txt", d / "pred.txt"],
                               encoding='utf-8', stdout=subprocess.PIPE)
-    df, sammary = evalb_to_df(pipe.stdout)
+    df, summary = evalb_to_df(pipe.stdout)
     # assert len(df) == len(paths)
     # df["path"] = [path.name for path in paths]
-    return df, sammary
+    return df, summary
 
 
 if __name__ == "__main__":
-    # trees = read_cleaned_corpus("test")
-    # df, sammary = evaluate(trees, trees)
-    # print(df)
-    import pickle
-    from pprint import pprint
-    from random import sample
-
-    syntax_dict = pickle.loads(Path("stats/syntax_dict.pkl").read_bytes())
-    pprint(dict((sample(sorted(syntax_dict.items()), 5))))
+    trees = read_cleaned_corpus("test")
+    df, sammary = evaluate(trees, trees)
+    print(df)
