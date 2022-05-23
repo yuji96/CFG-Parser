@@ -1,5 +1,4 @@
 import heapq
-from collections import defaultdict
 from heapq import nlargest
 
 from nltk.tree import Tree
@@ -38,19 +37,26 @@ class BackPoint:
         return self.child, self.is_terminal
 
     def __lt__(self, other):
-        return self.is_terminal > other.is_terminal
+
+
+unk_tags = [(0.2286623434164418, 'NNP'), (0.17948201554758933, 'JJ'),
+            (0.15265638216457889, 'NN'), (0.11841946268175776, 'CD'),
+            (0.08631731582551255, 'NNS'), (0.0704877754058082, 'NNP'),
+            (0.046119144479800214, 'NN'), (0.04410520803963427, 'JJ'),
+            (0.03697587304144681, 'VBG'), (0.03677447939743022, 'NNP')]
 
 
 def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict,
         beam=30):
     n = len(leaves)
     cell = [[[] for _ in range(n + 1)] for _ in range(n + 1)]
-    backpointer = [[defaultdict(list) for _ in range(n + 1)] for _ in range(n + 1)]
+    backpointer = [[{} for _ in range(n + 1)] for _ in range(n + 1)]
 
     for i, leaf in enumerate(leaves):
         # 単語 -> 品詞
-        for prob, parent in lexical_rule[leaf]:
+        for prob, parent in lexical_rule.get(leaf, unk_tags):
             cell[i][i + 1] += [(prob, parent)]
+            backpointer[i][i + 1].setdefault(parent, [])
             heapq.heappush(backpointer[i][i + 1][parent],
                            BackPoint(prob, child=leaf, is_terminal=True))
 
@@ -59,10 +65,11 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
             for prob_next, parent in unary_rule.get(child, []):
                 prob = prob_chain * prob_next
                 cell[i][i + 1] += [(prob, parent)]
+                backpointer[i][i + 1].setdefault(parent, [])
                 heapq.heappush(backpointer[i][i + 1][parent],
                                BackPoint(prob, child=child))
 
-        cell[i][i + 1] = nlargest(10, cell[i][i + 1])
+        # cell[i][i + 1] = nlargest(10, cell[i][i + 1])
 
     for l in range(2, n + 1):  # noqa
         for i in range(n - l + 1):
@@ -75,6 +82,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                         for prob_gen, parent in syntax_rule.get((s_l, s_r), []):
                             prob = prob_gen * prob_l * prob_r
                             cand += [(prob, parent)]
+                            backpointer[i][j].setdefault(parent, [])
                             heapq.heappush(
                                 backpointer[i][j][parent],
                                 BackPoint(prob, div=k, left=s_l, right=s_r))
@@ -84,6 +92,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                 for prob_next, parent in unary_rule.get(child, []):
                     prob = prob_chain * prob_next
                     cand += [(prob, parent)]
+                    backpointer[i][j].setdefault(parent, [])
                     heapq.heappush(backpointer[i][j][parent],
                                    BackPoint(prob, child=child))
 
