@@ -37,6 +37,7 @@ class BackPoint:
         return self.child, self.is_terminal
 
     def __lt__(self, other):
+        return self.prob > other.prob
 
 
 unk_tags = [(0.2286623434164418, 'NNP'), (0.17948201554758933, 'JJ'),
