@@ -104,7 +104,10 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 def build_tree(backpointer: list[list[dict[str, list[BackPoint]]]]) -> Tree:
     n = len(backpointer) - 1
 
-    back_of_TOP = heapq.heappop(backpointer[0][n]["S"])
+    try:
+        back_of_TOP = heapq.heappop(backpointer[0][n]["TOP"])
+    except KeyError:
+        return Tree("", [])
 
     def backward(i, j, tag) -> Tree:
         backpoint = heapq.heappop(backpointer[i][j][tag])
@@ -120,9 +123,9 @@ def build_tree(backpointer: list[list[dict[str, list[BackPoint]]]]) -> Tree:
 
     if back_of_TOP.is_binary:
         k, s_l, s_r = back_of_TOP.binary_pointers
-        return Tree("S", [backward(0, k, s_l), backward(k, n, s_r)])
+        return Tree("TOP", [backward(0, k, s_l), backward(k, n, s_r)])
     else:
-        return Tree("S", [backward(0, n, back_of_TOP.child)])
+        return Tree("TOP", [backward(0, n, back_of_TOP.child)])
 
 
 def visible_print(cell):
