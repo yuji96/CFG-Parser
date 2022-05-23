@@ -1,3 +1,4 @@
+import heapq
 from heapq import nlargest
 
 from nltk.tree import Tree
@@ -15,6 +16,37 @@ def fromlist(l):  # noqa
 Tree.fromlist = fromlist
 
 
+class BackPoint:
+
+    def __init__(self, prob, child=None, div=None, left=None, right=None,
+                 is_terminal=False):
+        self.prob = prob
+        self.is_terminal = is_terminal
+        self.child = child
+        self.div = div
+        self.left = left
+        self.right = right
+        self.is_binary = child is None
+
+    @property
+    def binary_pointers(self):
+        return self.div, self.left, self.right
+
+    @property
+    def unary_pointers(self):
+        return self.child, self.is_terminal
+
+    def __lt__(self, other):
+        return self.prob > other.prob
+
+
+unk_tags = [(0.2286623434164418, 'NNP'), (0.17948201554758933, 'JJ'),
+            (0.15265638216457889, 'NN'), (0.11841946268175776, 'CD'),
+            (0.08631731582551255, 'NNS'), (0.0704877754058082, 'NNP'),
+            (0.046119144479800214, 'NN'), (0.04410520803963427, 'JJ'),
+            (0.03697587304144681, 'VBG'), (0.03677447939743022, 'NNP')]
+
+
 def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: dict,
         beam=30):
     n = len(leaves)
@@ -23,63 +55,78 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
     for i, leaf in enumerate(leaves):
         # 単語 -> 品詞
-        for prob, parent in lexical_rule[leaf]:
+        for prob, parent in lexical_rule.get(leaf, unk_tags):
             cell[i][i + 1] += [(prob, parent)]
-            backpointer[i][i + 1][parent] = (leaf, True)
+            backpointer[i][i + 1].setdefault(parent, [])
+            heapq.heappush(backpointer[i][i + 1][parent],
+                           BackPoint(prob, child=leaf, is_terminal=True))
 
         for prob_chain, child in cell[i][i + 1].copy():
             # unary rule（妥協）
             for prob_next, parent in unary_rule.get(child, []):
-                cell[i][i + 1] += [(prob_chain * prob_next, parent)]
-                backpointer[i][i + 1][parent] = (child, False)
+                prob = prob_chain * prob_next
+                cell[i][i + 1] += [(prob, parent)]
+                backpointer[i][i + 1].setdefault(parent, [])
+                heapq.heappush(backpointer[i][i + 1][parent],
+                               BackPoint(prob, child=child))
 
-        cell[i][i + 1] = nlargest(10, cell[i][i + 1])
+        # cell[i][i + 1] = nlargest(10, cell[i][i + 1])
 
     for l in range(2, n + 1):  # noqa
         for i in range(n - l + 1):
             j = i + l
             cand = []
+
             for k in range(i + 1, j):
                 for prob_l, s_l in cell[i][k]:
                     for prob_r, s_r in cell[k][j]:
                         for prob_gen, parent in syntax_rule.get((s_l, s_r), []):
-                            cand += [(prob_gen * prob_l * prob_r, parent)]
-                            backpointer[i][j][parent] = (k, s_l, s_r)
+                            prob = prob_gen * prob_l * prob_r
+                            cand += [(prob, parent)]
+                            backpointer[i][j].setdefault(parent, [])
+                            heapq.heappush(
+                                backpointer[i][j][parent],
+                                BackPoint(prob, div=k, left=s_l, right=s_r))
 
             for prob_chain, child in cand.copy():
                 # unary rule（妥協）
                 for prob_next, parent in unary_rule.get(child, []):
-                    cand += [(prob_chain * prob_next, parent)]
-                    backpointer[i][j][parent] = (child, False)
+                    prob = prob_chain * prob_next
+                    cand += [(prob, parent)]
+                    backpointer[i][j].setdefault(parent, [])
+                    heapq.heappush(backpointer[i][j][parent],
+                                   BackPoint(prob, child=child))
 
             cell[i][j] = nlargest(beam, cand)
 
     return cell, backpointer
 
 
-def build_tree(backpointer) -> Tree:
+def build_tree(backpointer: list[list[dict[str, list[BackPoint]]]]) -> Tree:
     n = len(backpointer) - 1
 
-    back_of_S = backpointer[0][n]["S"]
+    try:
+        back_of_TOP = heapq.heappop(backpointer[0][n]["TOP"])
+    except KeyError:
+        return Tree("", [])
 
     def backward(i, j, tag) -> Tree:
-        unary_or_binary = backpointer[i][j][tag]
-        if len(unary_or_binary) == 3:
-            k, s_l, s_r = unary_or_binary
+        backpoint = heapq.heappop(backpointer[i][j][tag])
+        if backpoint.is_binary:
+            k, s_l, s_r = backpoint.binary_pointers
             return Tree(tag, [backward(i, k, s_l), backward(k, j, s_r)])
         else:
-            child, is_terminal = unary_or_binary
+            child, is_terminal = backpoint.unary_pointers
             if is_terminal:
                 return Tree(tag, [child])
             else:
                 return Tree(tag, [backward(i, j, child)])
 
-    if len(back_of_S) == 3:
-        k, s_l, s_r = back_of_S
-        return Tree("S", [backward(0, k, s_l), backward(k, n, s_r)])
+    if back_of_TOP.is_binary:
+        k, s_l, s_r = back_of_TOP.binary_pointers
+        return Tree("TOP", [backward(0, k, s_l), backward(k, n, s_r)])
     else:
-        child, _ = back_of_S
-        return Tree("S", [backward(0, n, child)])
+        return Tree("TOP", [backward(0, n, back_of_TOP.child)])
 
 
 def visible_print(cell):

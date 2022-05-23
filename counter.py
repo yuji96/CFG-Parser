@@ -1,6 +1,4 @@
 from collections import Counter, defaultdict
-from copy import deepcopy
-from itertools import chain
 
 from nltk.grammar import Production
 
@@ -44,8 +42,9 @@ def rule_as_dict(rules: list[Production]):
         else:
             tag = str(rule.lhs())
             children = tuple(map(str, rule.rhs()))
-            if len(children) == 1:
-                unary_all_case[tag].append(children[0])
+            child, *_ = children
+            if len(children) == 1 and child != tag:
+                unary_all_case[tag].append(child)
             else:
                 syntax_all_case[tag].append(children)
 
@@ -71,17 +70,16 @@ if __name__ == "__main__":
     from pathlib import Path
     from pprint import pprint
     from random import sample
+    from tqdm import tqdm
 
-    from reader import read_parsed_corpus
+    from reader import read_cleaned_corpus
 
     TRAIN = True
 
     Path("stats").mkdir(exist_ok=True)
 
     rules = []
-    dir_numbers = range(2, 21 + 1) if TRAIN else [0]
-    for path, tree in read_parsed_corpus("treebank_3/parsed/mrg/wsj", dir_numbers,
-                                         verbose=True):
+    for tree in tqdm(read_cleaned_corpus("train")):
         tree.chomsky_normal_form()
         rules += tree.productions()
 

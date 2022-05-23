@@ -1,5 +1,6 @@
 # my settings
 treebank_3
+data
 **/*.mrg
 tmp
 .vscode
