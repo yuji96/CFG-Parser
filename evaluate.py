@@ -65,10 +65,10 @@ if __name__ == "__main__":
     syntax_dict = pickle.loads(pwd.joinpath("stats/syntax_dict.pkl").read_bytes())
     unary_dict = pickle.loads(pwd.joinpath("stats/unary_dict.pkl").read_bytes())
 
-    # golds = read_cleaned_corpus("debug")
-    golds = sample(read_cleaned_corpus("test"), 10)
+    golds = [Tree.fromstring(Path("data/failure/2.clean").read_text())]
+    # golds = sample(read_cleaned_corpus("test"), 10)
     preds = [
         CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict, beam=20)
         for gold in tqdm(deepcopy(golds))
     ]
-    evaluate(golds, preds, "tmp/gold.txt", "tmp/pred.txt")
+    evaluate(golds, preds)

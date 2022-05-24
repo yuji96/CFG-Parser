@@ -6,6 +6,8 @@ from nltk.corpus import (BracketParseCorpusReader, ChunkedCorpusReader,
 from nltk.tree import Tree
 from tqdm import tqdm
 
+pwd = Path(__file__).parent
+
 
 def progress(iter_, verbose, **kwargs):
     if not verbose:
@@ -69,7 +71,8 @@ def read_parsed_corpus(root, dir_numbers,
 
 
 def read_cleaned_corpus(mode) -> list[Tree]:
-    reader = BracketParseCorpusReader("data/", r".*\.clean", tagset="wsj")
+    reader = BracketParseCorpusReader(str(pwd.joinpath("data")), r".*\.clean",
+                                      tagset="wsj")
     if mode == "train":
         return list(reader.parsed_sents("02-21.10way.clean"))
     if mode == "valid":
