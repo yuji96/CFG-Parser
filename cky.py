@@ -70,10 +70,10 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                         prob = tree.prob * prob_gen
                         cell[i][j].append(MyTree(prob, parent, [tree]))
 
-                    cell[i][j] = nlargest(beam, cell[i][j])
+                cell[i][j] = nlargest(beam, cell[i][j])
 
-    cell[0][-1] = [tree for tree in cell[0][-1] if tree.label == "TOP"]
-    tree = max(cell[0][-1]).tree
+    tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
+               default=MyTree(0, "", [""])).tree
     tree.un_chomsky_normal_form()
     return tree
 
