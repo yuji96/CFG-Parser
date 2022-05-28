@@ -1,6 +1,8 @@
 from collections import Counter, defaultdict
 
 from nltk.grammar import Production
+from nltk.tree import Tree
+from tqdm import tqdm
 
 
 def rule_as_dict(rules: list[Production]):
@@ -65,12 +67,53 @@ def rule_as_dict(rules: list[Production]):
     return lexical_dict, syntax_dict, unary_dict
 
 
+def to_chomsky(tree: Tree) -> Tree:
+    while len(tree) > 2:
+        # future: if カンマがいたらぶった切る
+        *other, right1, right2 = tree
+        new_tree = Tree(f"*{tree.label()}", [right1, right2])
+        tree = Tree(tree.label(), [*other, new_tree])
+
+    results = []
+    for subtree in tree:
+        if isinstance(subtree, str):
+            results.append(subtree)
+        elif isinstance(subtree, Tree):
+            results.append(to_chomsky(subtree))
+        else:
+            print(type(subtree), subtree, tree)
+            raise TypeError
+
+    return Tree(tree.label(), results)
+
+
+def to_un_chomsky(tree: Tree) -> Tree:
+    if isinstance(tree[0], str):
+        return tree
+
+    def flatten(tree):
+        if len(tree) == 1:
+            return tree
+
+        left, right = tree
+        children = [left]
+        while "*" == right.label()[0]:
+            left, right = right
+            children.append(left)
+            if len(right) == 1:
+                break
+        children.append(right)
+        return Tree(tree.label(), children)
+
+    tree = flatten(tree)
+    return Tree(tree.label(), [to_un_chomsky(subtree) for subtree in tree])
+
+
 if __name__ == "__main__":
     import pickle
     from pathlib import Path
     from pprint import pprint
     from random import sample
-    from tqdm import tqdm
 
     from reader import read_cleaned_corpus
 
@@ -80,7 +123,7 @@ if __name__ == "__main__":
 
     rules = []
     for tree in tqdm(read_cleaned_corpus("train")):
-        tree.chomsky_normal_form()
+        tree = to_chomsky(tree)
         rules += tree.productions()
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)

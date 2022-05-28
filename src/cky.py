@@ -2,6 +2,8 @@ from heapq import nlargest
 
 from nltk.tree import Tree
 
+from counter import to_un_chomsky
+
 
 class MyTree:
 
@@ -70,7 +72,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
     tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
                default=MyTree(0, "", [""])).tree
-    tree.un_chomsky_normal_form()
+    tree = to_un_chomsky(tree)
     return tree
 
 
