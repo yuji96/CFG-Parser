@@ -1,3 +1,4 @@
+import json
 from collections import Counter, defaultdict
 
 from nltk.grammar import Production
@@ -67,46 +68,56 @@ def rule_as_dict(rules: list[Production]):
     return lexical_dict, syntax_dict, unary_dict
 
 
-def to_chomsky(tree: Tree) -> Tree:
-    while len(tree) > 2:
-        # future: if カンマがいたらぶった切る
-        *other, right1, right2 = tree
-        new_tree = Tree(f"*{tree.label()}", [right1, right2])
-        tree = Tree(tree.label(), [*other, new_tree])
+def to_chomsky_rule(rule: Production) -> list[tuple[str, list[str]]]:
 
-    results = []
-    for subtree in tree:
-        if isinstance(subtree, str):
-            results.append(subtree)
-        elif isinstance(subtree, Tree):
-            results.append(to_chomsky(subtree))
+    root = str(rule.lhs())
+    children = [str(s) for s in rule.rhs()]
+    if len(children) <= 2:
+        return [(root, children)]
+
+    head = children[0]
+
+    def concat_info(child):
+        if child is not None:
+            return f"<{root}:[{head}]...{child}>"
         else:
-            print(type(subtree), subtree, tree)
-            raise TypeError
+            return f"<{root}:[{head}]>"
 
-    return Tree(tree.label(), results)
+    rules = []
+    parent = concat_info(children[-1])
+    rules.append((root, [parent]))
+
+    for i in range(1, len(children))[::-1]:
+        if i > 1:
+            left_child = concat_info(children[i - 1])
+        else:
+            left_child = concat_info(None)
+        rules.append((parent, [left_child, children[i]]))
+        parent = left_child
+
+    rules.append((parent, [head]))
+
+    return rules
 
 
 def to_un_chomsky(tree: Tree) -> Tree:
-    if isinstance(tree[0], str):
+    child_tree = tree[0]
+    if isinstance(child_tree, str):
+        print("terminal's parent")
         return tree
 
-    def flatten(tree):
-        if len(tree) == 1:
-            return tree
+    label = tree.label()
+    if not child_tree.label().startswith("<"):
+        return Tree(label, [to_un_chomsky(x) for x in tree])
 
-        left, right = tree
-        children = [left]
-        while "*" == right.label()[0]:
-            left, right = right
-            children.append(left)
-            if len(right) == 1:
-                break
+    children = []
+    while len(child_tree) == 2:
+        child_tree, right = child_tree
         children.append(right)
-        return Tree(tree.label(), children)
+    children.append(child_tree[0])
+    children = children[::-1]
 
-    tree = flatten(tree)
-    return Tree(tree.label(), [to_un_chomsky(subtree) for subtree in tree])
+    return Tree(label, children)
 
 
 if __name__ == "__main__":

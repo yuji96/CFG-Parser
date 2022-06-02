@@ -2,8 +2,6 @@ from heapq import nlargest
 
 from nltk.tree import Tree
 
-from counter import to_un_chomsky
-
 
 class MyTree:
 
@@ -49,6 +47,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
         cell[i][i + 1] = nlargest(beam, cell[i][i + 1])
 
     for l in range(2, n + 1):  # noqa
+        visible_print(cell)
         for i in range(n - l + 1):
             j = i + l
 
@@ -70,9 +69,11 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
                 cell[i][j] = nlargest(beam, cell[i][j])
 
-    tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
-               default=MyTree(0, "", [""])).tree
-    tree = to_un_chomsky(tree)
+    visible_print(cell)
+
+    # tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
+    #            default=MyTree(0, "", [""])).tree
+    tree = max(cell[0][-1]).tree
     return tree
 
 
@@ -82,7 +83,7 @@ def visible_print(cell):
         for patterns in row[1:]:
             try:
                 # print(f"{len(patterns): ^5}", end="|")
-                print(f"{','.join([p.label for p in patterns]): ^5}", end="|")
+                print(f"{','.join([p.label for p in patterns]): ^15}", end="|")
             except ValueError:
                 print(" " * 10, end="|")
         print()
