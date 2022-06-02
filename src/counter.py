@@ -6,27 +6,13 @@ from nltk.tree import Tree
 from tqdm import tqdm
 
 
-def rule_as_dict(rules: list[Production]):
+def rule_as_dict(rules: list[Production]) -> tuple[dict]:
     """構造ルールをカウントして、親子を逆転させた辞書を出力する。
 
     Parameters
     ----------
     rules : list[Production]
         `Tree.produces()` の返り値、またはそれを結合したもの。
-
-    Returns
-    -------
-    lexical_dict : dict[str, list]
-        単語を対応するタグの選択肢にマッピングする辞書。
-        i.e. {'deel': [(0.7, 'N'), (0.2, 'V'), ...], ...}
-    syntax_dict : dict[str, list]
-        2 つの子ノードを、それらを生成できる親ノードの選択肢にマッピングする辞書。
-        i.e. {('NP', 'VP'): [(1.0, 'S'), ...], ...}
-    unary_dict : dict[str, list]
-        再帰的に unary ルールを適用したときに到達可能な選択肢を返す辞書。
-        バックポインタも返す。
-        i.e. {('B',): [(1.0, 'A', ('B',))],
-              ('C',): [(1.0, 'B', ('C',)), (1.0, 'A', ('B',))]}
 
     """
     # TODO: update docstrings
@@ -68,12 +54,12 @@ def rule_as_dict(rules: list[Production]):
     return lexical_dict, syntax_dict, unary_dict
 
 
-def to_chomsky_rule(rule: Production) -> list[tuple[str, list[str]]]:
+def to_chomsky_rules(rule: Production) -> list[Production]:
 
     root = str(rule.lhs())
     children = [str(s) for s in rule.rhs()]
     if len(children) <= 2:
-        return [(root, children)]
+        return [rule]
 
     head = children[0]
 
@@ -85,17 +71,17 @@ def to_chomsky_rule(rule: Production) -> list[tuple[str, list[str]]]:
 
     rules = []
     parent = concat_info(children[-1])
-    rules.append((root, [parent]))
+    rules.append(Production(root, [head]))
 
     for i in range(1, len(children))[::-1]:
         if i > 1:
             left_child = concat_info(children[i - 1])
         else:
             left_child = concat_info(None)
-        rules.append((parent, [left_child, children[i]]))
+        rules.append(Production(left_child, [children[i]]))
         parent = left_child
 
-    rules.append((parent, [head]))
+    rules.append(Production(parent, [head]))
 
     return rules
 
@@ -123,25 +109,18 @@ def to_un_chomsky(tree: Tree) -> Tree:
 if __name__ == "__main__":
     import pickle
     from pathlib import Path
-    from pprint import pprint
-    from random import sample
 
     from reader import read_cleaned_corpus
-
-    TRAIN = True
 
     Path("stats").mkdir(exist_ok=True)
 
     rules = []
     for tree in tqdm(read_cleaned_corpus("train")):
-        tree = to_chomsky(tree)
-        rules += tree.productions()
+        for rule in tree.productions():
+            rules.extend(to_chomsky_rules(rule))
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
 
-    if TRAIN:
-        Path("stats/lexical_dict.pkl").write_bytes(pickle.dumps(lexical_dict))
-        Path("stats/syntax_dict.pkl").write_bytes(pickle.dumps(syntax_dict))
-        Path("stats/unary_dict.pkl").write_bytes(pickle.dumps(unary_dict))
-    else:
-        pprint(dict((sample(sorted(unary_dict.items()), 5))))
+    Path("stats/lexical_markov.pkl").write_bytes(pickle.dumps(lexical_dict))
+    Path("stats/syntax_markov.pkl").write_bytes(pickle.dumps(syntax_dict))
+    Path("stats/unary_markov.pkl").write_bytes(pickle.dumps(unary_dict))

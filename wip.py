@@ -5,7 +5,7 @@ from pprint import pprint
 from nltk import Production, Tree
 
 from src.cky import CKY
-from src.counter import to_chomsky_rule, to_un_chomsky
+from src.counter import to_chomsky_rules, to_un_chomsky
 
 
 def tmp_rule(rules: list[Production]):
@@ -17,7 +17,7 @@ def tmp_rule(rules: list[Production]):
             lex[right[0]].append((1, left))
             continue
 
-        for rule2 in to_chomsky_rule(rule):
+        for rule2 in to_chomsky_rules(rule):
             parent, children = rule2
             if len(children) == 1:
                 unary[children[0]].append((1, parent))

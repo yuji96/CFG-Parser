@@ -71,10 +71,10 @@ def read_parsed_corpus(root, dir_numbers,
 
 
 def read_cleaned_corpus(mode) -> list[Tree]:
-    reader = BracketParseCorpusReader(str(pwd.joinpath("data")), r".*\.clean",
+    reader = BracketParseCorpusReader(str(pwd.joinpath("../data")), r".*\.clean",
                                       tagset="wsj")
     if mode == "train":
-        return list(reader.parsed_sents("02-21.10way.clean"))
+        return (reader.parsed_sents("02-21.10way.clean"))
     if mode == "valid":
         return list(reader.parsed_sents("22.auto.clean"))
     if mode == "test":
