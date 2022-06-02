@@ -56,11 +56,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                         for prob_gen, parent in syntax_rule.get(
                                 (left.label, right.label), []):  # noqa yapf: disable
                             prob = prob_gen * left.prob * right.prob
-                            if l < n:
-                                cell[i][j].append(
-                                    MyTree(prob, parent, [left, right]))
-                            else:
-                                cell[i][j].append(MyTree(prob, "S", [left, right]))
+                            cell[i][j].append(MyTree(prob, parent, [left, right]))
 
             cell[i][j] = nlargest(beam, cell[i][j])
 
@@ -83,40 +79,9 @@ def visible_print(cell):
         print(end="|")
         for patterns in row[1:]:
             try:
-                print(f"{len(patterns): ^5}", end="|")
+                # print(f"{len(patterns): ^5}", end="|")
+                print(f"{','.join([p.label for p in patterns]): ^5}", end="|")
             except ValueError:
                 print(" " * 10, end="|")
         print()
     print()
-
-
-if __name__ == "__main__":
-    from pathlib import Path
-
-    tree: Tree = Tree.fromstring(Path("example/tree.txt").read_text())
-
-    lexical_dict = {
-        'Time': [(0.7, 'N')],
-        'an': [(1.0, 'D')],
-        'arrow': [(0.1, 'N')],
-        'flies': [(0.2, 'N'), (0.6, 'V')],
-        'like': [(0.4, 'V'), (1.0, 'P')]
-    }
-
-    syntax_dict = {
-        ('NP', 'VP'): [(1.0, 'S')],
-        ('V', 'NP'): [(0.5, 'VP')],
-        ('V', 'PP'): [(0.5, 'VP')],
-        ('D', 'N'): [(0.4, 'NP')],
-        ('N', 'N'): [(0.3, 'NP')],
-        ('P', 'NP'): [(1.0, 'PP')],
-    }
-
-    unary_dict = {
-        'N': [(0.3, 'NP')],
-        'NP': [(0.8, 'NNP')],
-    }
-
-    chart, backpointer = CKY(tree.leaves(), lexical_dict, syntax_dict, unary_dict)
-    tree = build_tree(backpointer)
-    tree.pretty_print()
