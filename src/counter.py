@@ -1,7 +1,7 @@
 import json
 from collections import Counter, defaultdict
 
-from nltk.grammar import Production, Nonterminal
+from nltk.grammar import Nonterminal, Production
 from nltk.tree import Tree
 from tqdm import tqdm
 
@@ -74,18 +74,20 @@ def to_chomsky_rules(rule: Production) -> list[Production]:
 
     rules = []
     parent = concat_info(children[-1])
-    # FIXME use this Nonterminal
-    rules.append(Production(root, [head]))
+    rules.append(Production(Nonterminal(root), [Nonterminal(parent)]))
 
     for i in range(1, len(children))[::-1]:
         if i > 1:
             left_child = concat_info(children[i - 1])
         else:
             left_child = concat_info(None)
-        rules.append(Production(left_child, [children[i]]))
+        rules.append(
+            Production(Nonterminal(parent),
+                       [Nonterminal(left_child),
+                        Nonterminal(children[i])]))
         parent = left_child
 
-    rules.append(Production(parent, [head]))
+    rules.append(Production(Nonterminal(parent), [Nonterminal(head)]))
 
     return rules
 
@@ -106,7 +108,7 @@ def to_un_chomsky(tree: Tree) -> Tree:
     children.append(child_tree[0])
     children = children[::-1]
 
-    return Tree(label, children)
+    return Tree(label, [to_un_chomsky(x) for x in children])
 
 
 if __name__ == "__main__":
@@ -124,6 +126,6 @@ if __name__ == "__main__":
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
 
-    Path("stats/lexical_markov2.pkl").write_bytes(pickle.dumps(lexical_dict))
-    Path("stats/syntax_markov2.pkl").write_bytes(pickle.dumps(syntax_dict))
-    Path("stats/unary_markov2.pkl").write_bytes(pickle.dumps(unary_dict))
+    Path("stats/lexical_markov.pkl").write_bytes(pickle.dumps(lexical_dict))
+    Path("stats/syntax_markov.pkl").write_bytes(pickle.dumps(syntax_dict))
+    Path("stats/unary_markov.pkl").write_bytes(pickle.dumps(unary_dict))

@@ -8,7 +8,7 @@ import pandas as pd
 from nltk.tree import Tree
 from tqdm import tqdm
 
-from counter import rule_as_dict, to_chomsky_rules
+from counter import rule_as_dict, to_chomsky_rules, to_un_chomsky
 from reader import read_cleaned_corpus
 
 
@@ -63,17 +63,18 @@ if __name__ == "__main__":
 
     pwd = Path(__file__).parent
     lexical_dict = pickle.loads(
-        pwd.joinpath("../stats/lexical_markov2.pkl").read_bytes())
+        pwd.joinpath("../stats/lexical_markov.pkl").read_bytes())
     syntax_dict = pickle.loads(
-        pwd.joinpath("../stats/syntax_markov2.pkl").read_bytes())
+        pwd.joinpath("../stats/syntax_markov.pkl").read_bytes())
     unary_dict = pickle.loads(
-        pwd.joinpath("../stats/unary_markov2.pkl").read_bytes())
+        pwd.joinpath("../stats/unary_markov.pkl").read_bytes())
 
-    # golds = sample(read_cleaned_corpus("test"), 10)
-    golds = [Tree.fromstring(Path("../data/failure/2.clean").read_text())]
+    golds = sample(read_cleaned_corpus("test"), 10)
+    # golds = [Tree.fromstring(Path("../data/failure/2.clean").read_text())]
 
     preds = [
         CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict, beam=20)
         for gold in tqdm(deepcopy(golds))
     ]
-    # evaluate(golds, preds)
+    preds = [to_un_chomsky(p) for p in preds]
+    evaluate(golds, preds, "gold.txt", "pred.txt")
