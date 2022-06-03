@@ -8,6 +8,7 @@ import pandas as pd
 from nltk.tree import Tree
 from tqdm import tqdm
 
+from counter import rule_as_dict, to_chomsky_rules
 from reader import read_cleaned_corpus
 
 
@@ -32,7 +33,7 @@ def evalb_to_df(text: str):
 
 def evaluate(gold_trees: list[Tree], pred_trees: list[Tree], gold_path=None,
              pred_path=None):
-    evalb = Path(__file__).resolve().parent.joinpath("EVALB/evalb")
+    evalb = Path(__file__).resolve().parent.joinpath("../EVALB/evalb")
     assert evalb.exists(), "evalb コマンドが見つかりません。"
 
     golds = "\n".join([tree.pformat(margin=float("inf")) for tree in gold_trees])
@@ -61,14 +62,18 @@ if __name__ == "__main__":
     seed(0)
 
     pwd = Path(__file__).parent
-    lexical_dict = pickle.loads(pwd.joinpath("stats/lexical_dict.pkl").read_bytes())
-    syntax_dict = pickle.loads(pwd.joinpath("stats/syntax_dict.pkl").read_bytes())
-    unary_dict = pickle.loads(pwd.joinpath("stats/unary_dict.pkl").read_bytes())
+    lexical_dict = pickle.loads(
+        pwd.joinpath("../stats/lexical_markov2.pkl").read_bytes())
+    syntax_dict = pickle.loads(
+        pwd.joinpath("../stats/syntax_markov2.pkl").read_bytes())
+    unary_dict = pickle.loads(
+        pwd.joinpath("../stats/unary_markov2.pkl").read_bytes())
 
-    golds = [Tree.fromstring(Path("data/failure/2.clean").read_text())]
     # golds = sample(read_cleaned_corpus("test"), 10)
+    golds = [Tree.fromstring(Path("../data/failure/2.clean").read_text())]
+
     preds = [
         CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict, beam=20)
         for gold in tqdm(deepcopy(golds))
     ]
-    evaluate(golds, preds)
+    # evaluate(golds, preds)

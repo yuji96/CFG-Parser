@@ -1,7 +1,7 @@
 import json
 from collections import Counter, defaultdict
 
-from nltk.grammar import Production
+from nltk.grammar import Production, Nonterminal
 from nltk.tree import Tree
 from tqdm import tqdm
 
@@ -41,13 +41,16 @@ def rule_as_dict(rules: list[Production]) -> tuple[dict]:
     syntax_dict: dict[tuple[str], list] = {}
     unary_dict: dict[str, list] = {}
     # yapf: disable
-    for case_dict, out_dict in zip(
+    for i, (case_dict, out_dict) in enumerate(zip(
             [lexical_all_cases, syntax_all_case, unary_all_case],
-            [lexical_dict, syntax_dict, unary_dict]):
+            [lexical_dict, syntax_dict, unary_dict])):
         # yapf: enable
         for tag, cases in case_dict.items():
             n = len(cases)
             for children, count in Counter(cases).items():
+                if i > 0 and count < 100:
+                    continue
+
                 out_dict.setdefault(children, [])
                 out_dict[children].append((count / n, tag))
 
@@ -71,6 +74,7 @@ def to_chomsky_rules(rule: Production) -> list[Production]:
 
     rules = []
     parent = concat_info(children[-1])
+    # FIXME use this Nonterminal
     rules.append(Production(root, [head]))
 
     for i in range(1, len(children))[::-1]:
@@ -89,7 +93,6 @@ def to_chomsky_rules(rule: Production) -> list[Production]:
 def to_un_chomsky(tree: Tree) -> Tree:
     child_tree = tree[0]
     if isinstance(child_tree, str):
-        print("terminal's parent")
         return tree
 
     label = tree.label()
@@ -121,6 +124,6 @@ if __name__ == "__main__":
 
     lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
 
-    Path("stats/lexical_markov.pkl").write_bytes(pickle.dumps(lexical_dict))
-    Path("stats/syntax_markov.pkl").write_bytes(pickle.dumps(syntax_dict))
-    Path("stats/unary_markov.pkl").write_bytes(pickle.dumps(unary_dict))
+    Path("stats/lexical_markov2.pkl").write_bytes(pickle.dumps(lexical_dict))
+    Path("stats/syntax_markov2.pkl").write_bytes(pickle.dumps(syntax_dict))
+    Path("stats/unary_markov2.pkl").write_bytes(pickle.dumps(unary_dict))

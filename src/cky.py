@@ -1,6 +1,9 @@
 from heapq import nlargest
+from pprint import pprint
 
 from nltk.tree import Tree
+
+from counter import to_un_chomsky
 
 
 class MyTree:
@@ -38,16 +41,19 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
         for prob_gen, parent in lexical_rule.get(leaf, unk_tags):
             cell[i][i + 1].append(MyTree(prob_gen, parent, [leaf]))
 
-        for tree in cell[i][i + 1].copy():
-            # unary rule（1回だけ）
-            for prob_gen, parent in unary_rule.get(tree.label, []):
-                prob = tree.prob * prob_gen
-                cell[i][i + 1].append(MyTree(prob, parent, [tree]))
+        next_tree = cell[i][i + 1].copy()
+        for _ in range(2):
+            for tree in nlargest(beam, next_tree):
+                next_tree = []
+                for prob_gen, parent in unary_rule.get(tree.label, []):
+                    prob = tree.prob * prob_gen
+                    cell[i][i + 1].append(MyTree(prob, parent, [tree]))
+                    next_tree.append(MyTree(prob, parent, [tree]))
 
         cell[i][i + 1] = nlargest(beam, cell[i][i + 1])
 
     for l in range(2, n + 1):  # noqa
-        visible_print(cell)
+        # visible_print(cell)
         for i in range(n - l + 1):
             j = i + l
 
@@ -59,21 +65,21 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
                             prob = prob_gen * left.prob * right.prob
                             cell[i][j].append(MyTree(prob, parent, [left, right]))
 
-            cell[i][j] = nlargest(beam, cell[i][j])
-
-            for _ in range(1):
-                for tree in cell[i][j].copy():
+            next_tree = cell[i][j].copy()
+            for _ in range(2):
+                for tree in nlargest(beam, next_tree):
+                    next_tree = []
                     for prob_gen, parent in unary_rule.get(tree.label, []):
                         prob = tree.prob * prob_gen
                         cell[i][j].append(MyTree(prob, parent, [tree]))
+                        next_tree.append(MyTree(prob, parent, [tree]))
 
-                cell[i][j] = nlargest(beam, cell[i][j])
+            cell[i][j] = nlargest(beam, cell[i][j])
 
-    visible_print(cell)
+    # visible_print(cell)
+    tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
+               default=MyTree(0, "", [""])).tree
 
-    # tree = max([tree for tree in cell[0][-1] if tree.label == "TOP"],
-    #            default=MyTree(0, "", [""])).tree
-    tree = max(cell[0][-1]).tree
     return tree
 
 
@@ -82,8 +88,8 @@ def visible_print(cell):
         print(end="|")
         for patterns in row[1:]:
             try:
-                # print(f"{len(patterns): ^5}", end="|")
-                print(f"{','.join([p.label for p in patterns]): ^15}", end="|")
+                print(f"{len(patterns): ^5}", end="|")
+                # print(f"{','.join([p.label for p in patterns]): ^15}", end="|")
             except ValueError:
                 print(" " * 10, end="|")
         print()
