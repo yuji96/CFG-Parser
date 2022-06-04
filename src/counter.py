@@ -1,4 +1,3 @@
-import json
 from collections import Counter, defaultdict
 
 from nltk.grammar import Nonterminal, Production
@@ -6,7 +5,7 @@ from nltk.tree import Tree
 from tqdm import tqdm
 
 
-def rule_as_dict(rules: list[Production]) -> tuple[dict]:
+def count_case(rules: list[Production]) -> dict:
     """構造ルールをカウントして、親子を逆転させた辞書を出力する。
 
     Parameters
@@ -17,44 +16,45 @@ def rule_as_dict(rules: list[Production]) -> tuple[dict]:
     """
     # TODO: update docstrings
 
-    lexical_all_cases = defaultdict(list)
-    syntax_all_case = defaultdict(list)
-    unary_all_case = defaultdict(list)
-
+    cases = defaultdict(list)
     for rule in rules:
-        # なぜか "A" ではなく "'A'" が返る
-        if rule.is_lexical():
-            tag = str(rule.lhs())
-            word, *_ = rule.rhs()
-            assert len(_) == 0
-            lexical_all_cases[tag].append(word)
-        else:
-            tag = str(rule.lhs())
-            children = tuple(map(str, rule.rhs()))
-            child, *_ = children
-            if len(children) == 1 and child != tag:
-                unary_all_case[tag].append(child)
+        parent = str(rule.lhs())
+        children = tuple(str(s) for s in rule.rhs())
+        cases[parent].append((children, rule.is_lexical()))
+
+    return cases
+
+
+def swap_dict(cases: dict) -> tuple[dict]:
+    count_all = {
+        parent: len(children_case)
+        for parent, children_case in cases.items()
+    }
+    count_each_dict = {
+        parent: Counter(children_case)
+        for parent, children_case in cases.items()
+    }
+
+    lexical_dict = defaultdict(list)
+    binary_dict = defaultdict(list)
+    unary_dict = defaultdict(list)
+    for parent, count_each in count_each_dict.items():
+        N = count_all[parent]
+        if N < 10:
+            continue
+
+        for (children, is_lexical), count in count_each.items():
+            value = (count / N, parent)
+            if is_lexical:
+                lexical_dict[children[0]].append(value)
+            elif len(children) == 1:
+                unary_dict[children[0]].append(value)
+            elif len(children) == 2:
+                binary_dict[children].append(value)
             else:
-                syntax_all_case[tag].append(children)
+                raise ValueError(f"{parent} -> {children}")
 
-    lexical_dict: dict[str, list] = {}
-    syntax_dict: dict[tuple[str], list] = {}
-    unary_dict: dict[str, list] = {}
-    # yapf: disable
-    for i, (case_dict, out_dict) in enumerate(zip(
-            [lexical_all_cases, syntax_all_case, unary_all_case],
-            [lexical_dict, syntax_dict, unary_dict])):
-        # yapf: enable
-        for tag, cases in case_dict.items():
-            n = len(cases)
-            for children, count in Counter(cases).items():
-                if i > 0 and count < 100:
-                    continue
-
-                out_dict.setdefault(children, [])
-                out_dict[children].append((count / n, tag))
-
-    return lexical_dict, syntax_dict, unary_dict
+    return lexical_dict, binary_dict, unary_dict
 
 
 def to_chomsky_rules(rule: Production) -> list[Production]:
@@ -68,9 +68,9 @@ def to_chomsky_rules(rule: Production) -> list[Production]:
 
     def concat_info(child):
         if child is not None:
-            return f"<{root}:[{head}]...{child}>"
+            return f"<{root}:{child}>"
         else:
-            return f"<{root}:[{head}]>"
+            return f"<{root}:>"
 
     rules = []
     parent = concat_info(children[-1])
@@ -119,13 +119,16 @@ if __name__ == "__main__":
 
     Path("stats").mkdir(exist_ok=True)
 
+    golds = read_cleaned_corpus("train")
     rules = []
-    for tree in tqdm(read_cleaned_corpus("train")):
+    for tree in tqdm(golds):
         for rule in tree.productions():
             rules.extend(to_chomsky_rules(rule))
 
-    lexical_dict, syntax_dict, unary_dict = rule_as_dict(rules)
-
-    Path("stats/lexical_markov.pkl").write_bytes(pickle.dumps(lexical_dict))
-    Path("stats/syntax_markov.pkl").write_bytes(pickle.dumps(syntax_dict))
-    Path("stats/unary_markov.pkl").write_bytes(pickle.dumps(unary_dict))
+    cases = count_case(rules)
+    # cases = pickle.loads(Path("stats/cases_norm.pkl").read_bytes())
+    lexical_dict, syntax_dict, unary_dict = swap_dict(cases)
+    Path("stats/cases_tmp.pkl").write_bytes(pickle.dumps(cases))
+    Path("stats/lexical_tmp.pkl").write_bytes(pickle.dumps(lexical_dict))
+    Path("stats/syntax_tmp.pkl").write_bytes(pickle.dumps(syntax_dict))
+    Path("stats/unary_tmp.pkl").write_bytes(pickle.dumps(unary_dict))
