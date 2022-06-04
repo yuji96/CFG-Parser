@@ -8,7 +8,7 @@ import pandas as pd
 from nltk.tree import Tree
 from tqdm import tqdm
 
-from counter import rule_as_dict, to_chomsky_rules, to_un_chomsky
+from counter import to_un_chomsky
 from reader import read_cleaned_corpus
 
 
@@ -33,8 +33,9 @@ def evalb_to_df(text: str):
 
 def evaluate(gold_trees: list[Tree], pred_trees: list[Tree], gold_path=None,
              pred_path=None):
-    evalb = Path(__file__).resolve().parent.joinpath("../EVALB/evalb")
-    assert evalb.exists(), "evalb コマンドが見つかりません。"
+    evalb_dir = Path(__file__).joinpath("../../EVALB").resolve()
+    evalb = evalb_dir.joinpath("evalb")
+    assert evalb.exists(), f"evalb コマンドが見つかりません。\n{evalb}"
 
     golds = "\n".join([tree.pformat(margin=float("inf")) for tree in gold_trees])
     preds = "\n".join([tree.pformat(margin=float("inf")) for tree in pred_trees])
@@ -43,8 +44,9 @@ def evaluate(gold_trees: list[Tree], pred_trees: list[Tree], gold_path=None,
         d = Path(tmpdir)
         d.joinpath("gold.txt").write_text(golds)
         d.joinpath("pred.txt").write_text(preds)
-        subprocess.run([str(evalb), d / "gold.txt", d / "pred.txt"],
-                       encoding='utf-8')
+        subprocess.run([
+            str(evalb), d / "gold.txt", d / "pred.txt", "-p", evalb_dir / "new.prm"
+        ], encoding='utf-8')
 
     pwd = Path(__file__).parent
     if isinstance(gold_path, str):
@@ -63,11 +65,9 @@ if __name__ == "__main__":
 
     pwd = Path(__file__).parent
     lexical_dict = pickle.loads(
-        pwd.joinpath("../stats/lexical_markov.pkl").read_bytes())
-    syntax_dict = pickle.loads(
-        pwd.joinpath("../stats/syntax_markov.pkl").read_bytes())
-    unary_dict = pickle.loads(
-        pwd.joinpath("../stats/unary_markov.pkl").read_bytes())
+        pwd.joinpath("../stats/lexical_tmp.pkl").read_bytes())
+    syntax_dict = pickle.loads(pwd.joinpath("../stats/syntax_tmp.pkl").read_bytes())
+    unary_dict = pickle.loads(pwd.joinpath("../stats/unary_tmp.pkl").read_bytes())
 
     golds = sample(read_cleaned_corpus("test"), 10)
     # golds = [Tree.fromstring(Path("../data/failure/2.clean").read_text())]
