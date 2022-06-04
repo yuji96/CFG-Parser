@@ -2,6 +2,7 @@ from heapq import nlargest
 from pprint import pprint
 
 from nltk.tree import Tree
+from tqdm import tqdm
 
 from counter import to_un_chomsky
 
@@ -52,7 +53,7 @@ def CKY(leaves: list[str], lexical_rule: dict, syntax_rule: dict, unary_rule: di
 
         cell[i][i + 1] = nlargest(beam, cell[i][i + 1])
 
-    for l in range(2, n + 1):  # noqa
+    for l in tqdm(range(2, n + 1), leave=False):  # noqa
         # visible_print(cell)
         for i in range(n - l + 1):
             j = i + l

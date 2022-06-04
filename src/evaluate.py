@@ -65,16 +65,19 @@ if __name__ == "__main__":
 
     pwd = Path(__file__).parent
     lexical_dict = pickle.loads(
-        pwd.joinpath("../stats/lexical_tmp.pkl").read_bytes())
-    syntax_dict = pickle.loads(pwd.joinpath("../stats/syntax_tmp.pkl").read_bytes())
-    unary_dict = pickle.loads(pwd.joinpath("../stats/unary_tmp.pkl").read_bytes())
+        pwd.joinpath("../stats/lexical_nltk.pkl").read_bytes())
+    syntax_dict = pickle.loads(
+        pwd.joinpath("../stats/syntax_nltk.pkl").read_bytes())
+    unary_dict = pickle.loads(pwd.joinpath("../stats/unary_nltk.pkl").read_bytes())
 
-    golds = sample(read_cleaned_corpus("test"), 10)
-    # golds = [Tree.fromstring(Path("../data/failure/2.clean").read_text())]
+    # golds = sample(read_cleaned_corpus("test"), 10)
+    golds = [Tree.fromstring(pwd.joinpath("../data/tmp.clean").read_text())]
 
     preds = [
-        CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict, beam=20)
+        CKY(gold.leaves(), lexical_dict, syntax_dict, unary_dict, beam=30)
         for gold in tqdm(deepcopy(golds))
     ]
-    preds = [to_un_chomsky(p) for p in preds]
-    evaluate(golds, preds, "gold.txt", "pred.txt")
+    # preds = [to_un_chomsky(p) for p in preds]
+    [p.un_chomsky_normal_form() for p in preds]
+    # evaluate(golds, preds, "gold.txt", "pred.txt")
+    evaluate(golds, preds)
