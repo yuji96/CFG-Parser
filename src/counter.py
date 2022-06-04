@@ -1,11 +1,12 @@
 from collections import Counter, defaultdict
+from pprint import pprint
 
 from nltk.grammar import Nonterminal, Production
 from nltk.tree import Tree
 from tqdm import tqdm
 
 
-def count_case(rules: list[Production]) -> dict:
+def culc_prob(rules: list[Production]) -> tuple[dict]:
     """構造ルールをカウントして、親子を逆転させた辞書を出力する。
 
     Parameters
@@ -22,37 +23,38 @@ def count_case(rules: list[Production]) -> dict:
         children = tuple(str(s) for s in rule.rhs())
         cases[parent].append((children, rule.is_lexical()))
 
-    return cases
-
-
-def swap_dict(cases: dict) -> tuple[dict]:
-    count_all = {
-        parent: len(children_case)
-        for parent, children_case in cases.items()
-    }
-    count_each_dict = {
-        parent: Counter(children_case)
-        for parent, children_case in cases.items()
-    }
-
-    lexical_dict = defaultdict(list)
-    binary_dict = defaultdict(list)
-    unary_dict = defaultdict(list)
-    for parent, count_each in count_each_dict.items():
-        N = count_all[parent]
-        if N < 10:
-            continue
-
-        for (children, is_lexical), count in count_each.items():
-            value = (count / N, parent)
+    lexical_prob = defaultdict(list)
+    binary_prob = defaultdict(list)
+    unary_prob = defaultdict(list)
+    for parent, children_case in cases.items():
+        N = len(children_case)
+        counter = Counter(children_case)
+        for (children, is_lexical), count in counter.items():
             if is_lexical:
-                lexical_dict[children[0]].append(value)
+                lexical_prob[parent].append((count / N, children[0]))
             elif len(children) == 1:
-                unary_dict[children[0]].append(value)
+                unary_prob[parent].append((count / N, children[0]))
             elif len(children) == 2:
-                binary_dict[children].append(value)
+                binary_prob[parent].append((count / N, children))
             else:
                 raise ValueError(f"{parent} -> {children}")
+
+    return lexical_prob, binary_prob, unary_prob
+
+
+def swap_dict(lexical_prob: dict, binary_prob: dict,
+              unary_prob: dict) -> tuple[dict]:
+
+    def _swap(d):
+        swap_d = defaultdict(list)
+        for parent, children_cases in d.items():
+            for prob, children in children_cases:
+                swap_d[children].append((prob, parent))
+        return swap_d
+
+    lexical_dict = _swap(lexical_prob)
+    binary_dict = _swap(binary_prob)
+    unary_dict = _swap(unary_prob)
 
     return lexical_dict, binary_dict, unary_dict
 
@@ -117,18 +119,22 @@ if __name__ == "__main__":
 
     from reader import read_cleaned_corpus
 
-    Path("stats").mkdir(exist_ok=True)
+    pwd = Path(__file__).parent
+
+    pwd.joinpath("../stats").mkdir(exist_ok=True)
 
     golds = read_cleaned_corpus("train")
     rules = []
     for tree in tqdm(golds):
-        for rule in tree.productions():
-            rules.extend(to_chomsky_rules(rule))
+        tree: Tree
+        tree.chomsky_normal_form()
+        rules.extend(tree.productions())
 
-    cases = count_case(rules)
-    # cases = pickle.loads(Path("stats/cases_norm.pkl").read_bytes())
-    lexical_dict, syntax_dict, unary_dict = swap_dict(cases)
-    Path("stats/cases_tmp.pkl").write_bytes(pickle.dumps(cases))
-    Path("stats/lexical_tmp.pkl").write_bytes(pickle.dumps(lexical_dict))
-    Path("stats/syntax_tmp.pkl").write_bytes(pickle.dumps(syntax_dict))
-    Path("stats/unary_tmp.pkl").write_bytes(pickle.dumps(unary_dict))
+    lexical_prob, binary_prob, unary_prob = culc_prob(rules)
+    suffix = "nltk"
+    pwd.joinpath(f"../stats/lexical_{suffix}.pkl").write_bytes(
+        pickle.dumps(lexical_prob))
+    pwd.joinpath(f"../stats/binary_{suffix}.pkl").write_bytes(
+        pickle.dumps(binary_prob))
+    pwd.joinpath(f"../stats/unary_{suffix}.pkl").write_bytes(
+        pickle.dumps(unary_prob))
