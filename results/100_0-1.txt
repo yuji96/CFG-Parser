@@ -1,0 +1,44 @@
+  Sent.                        Matched  Bracket   Cross        Correct Tag
+ ID  Len.  Stat. Recal  Prec.  Bracket gold test Bracket Words  Tags Accracy
+============================================================================
+   1   26    0   33.33  33.33     7     21   21     13     24    22    91.67
+   2   25    0   52.17  60.00    12     23   20      6     23    21    91.30
+   3   11    0   85.71 100.00     6      7    6      0     10    10   100.00
+   4   37    0   60.71  62.96    17     28   27      6     34    33    97.06
+   5   22    0   50.00  30.77     4      8   13      3     18    17    94.44
+   6   33    0   46.43  59.09    13     28   22      8     32    31    96.88
+   7   17    0   93.33  77.78    14     15   18      0     13    12    92.31
+   8   40    1    0.00   0.00     0      0    0      0      0     0     0.00
+   9   25    0   92.31  80.00    12     13   15      1     22    22   100.00
+  10   21    0   58.82  66.67    10     17   15      2     19    18    94.74
+============================================================================
+                 59.38  60.51     95   160   157     39    195   186    95.38
+=== Summary ===
+
+-- All --
+Number of sentence        =     10
+Number of Error sentence  =      1
+Number of Skip  sentence  =      0
+Number of Valid sentence  =      9
+Bracketing Recall         =  59.38
+Bracketing Precision      =  60.51
+Bracketing FMeasure       =  59.94
+Complete match            =   0.00
+Average crossing          =   4.33
+No crossing               =  22.22
+2 or less crossing        =  44.44
+Tagging accuracy          =  95.38
+
+-- len<=40 --
+Number of sentence        =     10
+Number of Error sentence  =      1
+Number of Skip  sentence  =      0
+Number of Valid sentence  =      9
+Bracketing Recall         =  59.38
+Bracketing Precision      =  60.51
+Bracketing FMeasure       =  59.94
+Complete match            =   0.00
+Average crossing          =   4.33
+No crossing               =  22.22
+2 or less crossing        =  44.44
+Tagging accuracy          =  95.38

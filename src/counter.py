@@ -127,11 +127,11 @@ if __name__ == "__main__":
     rules = []
     for tree in tqdm(golds):
         tree: Tree
-        tree.chomsky_normal_form()
+        tree.chomsky_normal_form(horzMarkov=0, vertMarkov=2)
         rules.extend(tree.productions())
 
     lexical_prob, binary_prob, unary_prob = culc_prob(rules)
-    suffix = "nltk"
+    suffix = "markov_0-2"
     pwd.joinpath(f"../stats/lexical_{suffix}.pkl").write_bytes(
         pickle.dumps(lexical_prob))
     pwd.joinpath(f"../stats/binary_{suffix}.pkl").write_bytes(

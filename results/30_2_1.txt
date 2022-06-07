@@ -1,0 +1,32 @@
+beam size: 30
+horizon markov: 2
+vertical markov: 1
+
+  Sent.                        Matched  Bracket   Cross        Correct Tag                                                 
+ ID  Len.  Stat. Recal  Prec.  Bracket gold test Bracket Words  Tags Accracy
+============================================================================
+   1   26    0   66.67  73.68    14     21   19      5     24    23    95.83
+   2   25    0   73.91  80.95    17     23   21      3     23    22    95.65
+   3   11    0   71.43 100.00     5      7    5      0     10    10   100.00
+   4   37    0   39.29  40.74    11     28   27     11     34    33    97.06
+   5   22    0   87.50 100.00     7      8    7      0     18    18   100.00
+   6   33    0   32.14  47.37     9     28   19      6     32    29    90.62
+   7   17    0   46.67  36.84     7     15   19      6     13    12    92.31
+   8   40    0   50.00  53.57    15     30   28      8     33    32    96.97
+   9   25    0   76.92  62.50    10     13   16      2     22    22   100.00
+  10   21    0   29.41  41.67     5     17   12      5     19    18    94.74
+============================================================================
+                 52.63  57.80    100   190   173     46    228   219    96.05
+=== Summary ===
+
+-- All --
+Number of sentence        =     10
+Number of Error sentence  =      0
+Number of Skip  sentence  =      0
+Number of Valid sentence  =     10
+Bracketing Recall         =  52.63
+Bracketing Precision      =  57.80
+Bracketing FMeasure       =  55.10
+Complete match            =   0.00
+Average crossing          =   4.60
+No crossing               =  20.00
