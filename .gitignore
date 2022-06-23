@@ -2,6 +2,8 @@
 treebank_3
 tmp
 .vscode
+neural-parser/data
+neural-parser/log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
